@@ -451,7 +451,7 @@ function renderHistory() {
     const left=document.createElement('div');
     left.innerHTML=`<div class="h-round">GUESS ${i+1}</div><div class="h-guess">${h.guess.join('  ')}</div>`;
     const right=document.createElement('div');
-    right.innerHTML=`<div class="h-round">CLUES</div><div class="h-clues">${h.clues.map(c=>['✅','🔄','🔶','❌'][c]).join(' ')}</div>`;
+    right.innerHTML=`<div class="h-round">CLUES</div><div class="h-clues">${h.clues.map(c=>['✅','🔄','🌓','❌'][c]).join(' ')}</div>`;
     row.appendChild(left);
     row.appendChild(right);
     card.appendChild(row);
