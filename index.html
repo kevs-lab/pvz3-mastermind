@@ -327,10 +327,10 @@ function chooseGuess(candidates, history) {
 }
 
 const CLUE_DEFS = [
-  { icon:'✅', label:'Correct combination, correct position' },
-  { icon:'🔄', label:'Correct combination, wrong position' },
-  { icon:'🔶', label:'One letter matches its sub-position' },
-  { icon:'❌', label:'Completely wrong' }
+  { icon:'✅', label:'Correct' },
+  { icon:'🔄', label:'Wrong Slot' },
+  { icon:'🌓', label:'Partial' },
+  { icon:'❌', label:'All wrong' }
 ];
 
 let candidates=[], currentGuess=null, history=[], selectedClues=[null,null,null,null];
