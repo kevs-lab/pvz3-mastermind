@@ -285,19 +285,31 @@ function getPartialClue(guessCombo, answerCombo) {
 function scoreGuess(guess, answer) {
   const gn = guess.map(norm);
   const an = answer.map(norm);
-  const usedA = new Array(4).fill(false);
   const clues = new Array(4).fill(-1);
+
+  // Pass 1: mark exact matches (clue 0)
+  const usedG = new Array(4).fill(false);
+  const usedA = new Array(4).fill(false);
   for (let i=0;i<4;i++) {
-    if (gn[i]===an[i]) { clues[i]=0; usedA[i]=true; }
+    if (gn[i]===an[i]) { clues[i]=0; usedG[i]=true; usedA[i]=true; }
   }
+
+  // Pass 2: wrong slot (clue 1) — only match against answer slots not already used
+  for (let i=0;i<4;i++) {
+    if (usedG[i]) continue;
+    for (let j=0;j<4;j++) {
+      if (!usedA[j] && j!==i && gn[i]===an[j]) {
+        clues[i]=1; usedG[i]=true; usedA[j]=true; break;
+      }
+    }
+  }
+
+  // Pass 3: partial or all-wrong for remaining unmatched positions
   for (let i=0;i<4;i++) {
     if (clues[i]!==-1) continue;
-    let found=false;
-    for (let j=0;j<4;j++) {
-      if (!usedA[j] && j!==i && gn[i]===an[j]) { clues[i]=1; found=true; usedA[j]=true; break; }
-    }
-    if (!found) clues[i]=getPartialClue(guess[i],answer[i]);
+    clues[i]=getPartialClue(guess[i],answer[i]);
   }
+
   return clues;
 }
 
