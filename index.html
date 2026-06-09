@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mastermind Solver</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
 <style>
   :root {
     --bg: #0f1117;
@@ -217,6 +216,34 @@
     font-size: 13px;
     color: var(--muted);
   }
+  .locked-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    border-radius: 7px;
+    border: 1px solid rgba(52,211,153,0.2);
+    background: rgba(52,211,153,0.05);
+  }
+  .locked-combo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent2);
+    background: rgba(52,211,153,0.12);
+    border: 1px solid rgba(52,211,153,0.25);
+    border-radius: 6px;
+    padding: 3px 10px;
+    min-width: 48px;
+    text-align: center;
+  }
+  .locked-meta { font-size: 12px; color: var(--muted); flex: 1; }
+  .locked-badge {
+    font-size: 11px;
+    color: var(--accent2);
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.05em;
+  }
 </style>
 </head>
 <body>
@@ -336,12 +363,13 @@ const CLUE_DEFS = [
   { icon:'❌', label:'All wrong' }
 ];
 
-let candidates=[], currentGuess=null, history=[], selectedClues=[null,null,null,null];
+let candidates=[], currentGuess=null, history=[], selectedClues=[null,null,null,null], lockedSlots={};
 
 function init() {
   candidates=allGuesses();
   history=[];
   selectedClues=[null,null,null,null];
+  lockedSlots={};
   currentGuess=chooseGuess(candidates,history);
   document.getElementById('candidate-count').textContent=candidates.length;
   document.getElementById('solved-banner').style.display='none';
@@ -365,28 +393,42 @@ function renderClueGrid() {
   const grid=document.getElementById('clue-grid');
   grid.innerHTML='';
   if (!currentGuess) return;
-  selectedClues=[null,null,null,null];
+  // Pre-fill locked slots; active slots start null
+  selectedClues=currentGuess.map((_,pos)=> lockedSlots[pos]!==undefined ? 0 : null);
+  let firstActive=true;
   currentGuess.forEach((combo,pos) => {
     const block=document.createElement('div');
     block.className='pos-block';
-    const header=document.createElement('div');
-    header.className='pos-header';
-    header.innerHTML=`<span class="pos-label">${combo}</span><span class="pos-pos">Position ${pos+1}</span>`;
-    block.appendChild(header);
-    const opts=document.createElement('div');
-    opts.className='clue-options';
-    CLUE_DEFS.forEach((def,ci) => {
-      const btn=document.createElement('button');
-      btn.className='clue-btn';
-      btn.innerHTML=`<span class="icon">${def.icon}</span><span class="desc">${def.label}</span>`;
-      btn.onclick=()=>{
-        selectedClues[pos]=ci;
-        opts.querySelectorAll('.clue-btn').forEach(b=>b.classList.remove('selected'));
-        btn.classList.add('selected');
-      };
-      opts.appendChild(btn);
-    });
-    block.appendChild(opts);
+    if (lockedSlots[pos]!==undefined) {
+      // Collapsed locked row
+      block.innerHTML=`<div class="locked-row">
+        <span class="locked-combo">${combo}</span>
+        <span class="locked-meta">Position ${pos+1}</span>
+        <span class="locked-badge">✅ LOCKED</span>
+      </div>`;
+    } else {
+      // Active row with clue buttons
+      const header=document.createElement('div');
+      header.className='pos-header';
+      header.innerHTML=`<span class="pos-label">${combo}</span><span class="pos-pos">Position ${pos+1}</span>`;
+      block.appendChild(header);
+      const opts=document.createElement('div');
+      opts.className='clue-options';
+      // Active slots cannot be marked Correct again (it will auto-lock next round)
+      CLUE_DEFS.forEach((def,ci) => {
+        const btn=document.createElement('button');
+        btn.className='clue-btn';
+        btn.innerHTML=`<span class="icon">${def.icon}</span><span class="desc">${def.label}</span>`;
+        btn.onclick=()=>{
+          selectedClues[pos]=ci;
+          opts.querySelectorAll('.clue-btn').forEach(b=>b.classList.remove('selected'));
+          btn.classList.add('selected');
+        };
+        opts.appendChild(btn);
+      });
+      block.appendChild(opts);
+      firstActive=false;
+    }
     if (pos<3) { const hr=document.createElement('hr'); hr.className='divider'; block.appendChild(hr); }
     grid.appendChild(block);
   });
@@ -394,13 +436,18 @@ function renderClueGrid() {
 
 function submitClues() {
   const errEl=document.getElementById('error-banner');
-  if (selectedClues.some(c=>c===null)) {
+  // Only check active (non-locked) slots for input
+  const activeUnfilled = selectedClues.some((c,i)=> lockedSlots[i]===undefined && c===null);
+  if (activeUnfilled) {
     errEl.style.display='block';
-    errEl.textContent='Please select a clue for all 4 positions.';
+    errEl.textContent='Please select a clue for all active positions.';
     return;
   }
   errEl.style.display='none';
-  if (selectedClues.every(c=>c===0)) {
+  // Lock any newly correct slots
+  selectedClues.forEach((c,i)=>{ if(c===0) lockedSlots[i]=currentGuess[i]; });
+  // Solved when all 4 slots are locked
+  if (Object.keys(lockedSlots).length===4) {
     document.getElementById('solved-banner').style.display='block';
     document.getElementById('solved-banner').textContent=`SOLVED: ${currentGuess.join('  ')}`;
     document.getElementById('clue-grid').innerHTML='';
@@ -448,6 +495,11 @@ function renderHistory() {
     card.appendChild(row);
     el.appendChild(card);
   });
+}
+
+function resetAll() {
+  lockedSlots={};
+  init();
 }
 
 init();
