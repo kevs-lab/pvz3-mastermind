@@ -339,8 +339,11 @@ function scoreGuess(guess, answer) {
 
 function allGuesses() {
   const res=[];
-  for (let a of ALL_COMBOS) for (let b of ALL_COMBOS) for (let c of ALL_COMBOS) for (let d of ALL_COMBOS)
-    res.push([a,b,c,d]);
+  for (let a of ALL_COMBOS) for (let b of ALL_COMBOS) for (let c of ALL_COMBOS) for (let d of ALL_COMBOS) {
+    // No duplicate combinations across positions
+    const s = new Set([a,b,c,d]);
+    if (s.size===4) res.push([a,b,c,d]);
+  }
   return res;
 }
 
