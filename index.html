@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mastermind Solver</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0f1117;
@@ -316,16 +316,21 @@ function scoreGuess(guess, answer) {
   const an = answer.map(norm);
   const clues = new Array(4).fill(-1);
 
+  // First identify which answer slots are exact matches (✅)
+  const exactSlots = new Array(4).fill(false);
   for (let i=0;i<4;i++) {
-    // Clue 0: exact match at this slot
-    if (gn[i]===an[i]) { clues[i]=0; continue; }
-    // Clue 1: same combination exists somewhere else in the answer
+    if (gn[i]===an[i]) { clues[i]=0; exactSlots[i]=true; }
+  }
+
+  for (let i=0;i<4;i++) {
+    if (clues[i]!==-1) continue;
+    // Clue 1: same combination exists in a non-exact answer slot
     let wrongSlot = false;
     for (let j=0;j<4;j++) {
-      if (j!==i && gn[i]===an[j]) { wrongSlot=true; break; }
+      if (j!==i && !exactSlots[j] && gn[i]===an[j]) { wrongSlot=true; break; }
     }
     if (wrongSlot) { clues[i]=1; continue; }
-    // Clue 2: shares at least 1 letter with the answer combo at this slot
+    // Clue 2/3: partial or all-wrong against this slot's answer combo
     clues[i] = getPartialClue(guess[i], answer[i]);
   }
 
